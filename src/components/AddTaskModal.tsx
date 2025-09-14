@@ -11,12 +11,18 @@ import {
   Text,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
-import { useTaskFormStore } from "../store/TaskFormStore";
+import { useState } from "react";
+import { useTaskFormStore } from "../store/TaskFromStore1";
 
 interface AddTaskModalProps {
   opened: boolean;
   onClose: () => void;
-  onAdd: (title: string, description: string, dueDate: string | null) => void;
+  onAdd: (
+    title: string,
+    description: string,
+    dueDate: string | null,
+    assignees: string[]
+  ) => void;
 }
 const usersData: Record<string, { image: string; email: string }> = {
   "Emily Johnson": {
@@ -46,6 +52,20 @@ const usersData: Record<string, { image: string; email: string }> = {
   },
 };
 
+const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
+  option,
+}) => (
+  <Group gap="sm">
+    <Avatar src={usersData[option.value].image} size={36} radius="xl" />
+    <div>
+      <Text size="sm">{option.value}</Text>
+      <Text size="xs" opacity={0.5}>
+        {usersData[option.value].email}
+      </Text>
+    </div>
+  </Group>
+);
+
 export default function AddTaskModal({
   opened,
   onClose,
@@ -55,18 +75,39 @@ export default function AddTaskModal({
     title,
     description,
     dueDate,
-    setTitle,
-    setDescription,
-    setDueDate,
+    setTasks,
+    setdescription,
+    setdueDate,
     resetForm,
   } = useTaskFormStore();
+  const [assignees, setAssignees] = useState<string[]>([]);
+  const [assigneesError, setAssigneesError] = useState<string>(
+    "Assignees is required"
+  );
+  const options = Object.entries(usersData).map(([name, { image, email }]) => ({
+    value: name,
+    label: name,
+    image,
+    email,
+  }));
+
   const handleAdd = () => {
-    if (!title.trim() || !description.trim() || !dueDate) return;
-    onAdd(title, description, dueDate);
+    if (
+      !title.trim() ||
+      !description.trim() ||
+      !dueDate ||
+      assignees.length === 0
+    ) {
+      if (assignees.length === 0) setAssigneesError("Assignees is required");
+      return;
+    }
+
+    onAdd(title, description, dueDate, assignees);
     onClose();
     resetForm();
+    setAssignees([]);
+    setAssigneesError("Assignees is required");
   };
-
   return (
     <Modal opened={opened} onClose={onClose} title="Add Task">
       <Stack>
@@ -74,14 +115,14 @@ export default function AddTaskModal({
           label="Title"
           withAsterisk
           value={title}
-          onChange={(e) => setTitle(e.currentTarget.value)}
+          onChange={(e) => setTasks(e.currentTarget.value)}
           error={!title.trim() && "Title is required"}
         />
         <Textarea
           label="Description"
           withAsterisk
           value={description}
-          onChange={(e) => setDescription(e.currentTarget.value)}
+          onChange={(e) => setdescription(e.currentTarget.value)}
           error={!description.trim() && "Description is required"}
         />
         <DateInput
@@ -90,8 +131,27 @@ export default function AddTaskModal({
           valueFormat="ddd MMM DD YYYY"
           minDate={new Date()}
           value={dueDate}
-          onChange={(date) => setDueDate(date ? date : null)}
-          error={!dueDate?.trim() ? "Due Date is required" : false}
+          onChange={(date) => setdueDate(date ? date : null)}
+          error={!dueDate ? "Due Date is required" : false}
+        />
+        <MultiSelect
+          data={options}
+          value={assignees}
+          onChange={(values) => {
+            setAssignees(values);
+            if (values.length > 0) {
+              setAssigneesError("");
+            } else {
+              setAssigneesError("Assignees is required");
+            }
+          }}
+          renderOption={renderMultiSelectOption}
+          maxDropdownHeight={300}
+          label="Assignees"
+          placeholder="Search for Assignees"
+          hidePickedOptions
+          searchable
+          error={assigneesError}
         />
         {/* เพิ่ม MultiSelect ตรงนี้*/}
         <Button onClick={handleAdd}>Save</Button>

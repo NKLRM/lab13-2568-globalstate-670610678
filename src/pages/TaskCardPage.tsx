@@ -8,15 +8,35 @@ import {
   Group,
   Checkbox,
   ActionIcon,
+  Badge,
 } from "@mantine/core";
 import { IconTrash } from "@tabler/icons-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import dayjs from "dayjs";
 import AddTaskModal from "../components/AddTaskModal";
 import { useTaskStore } from "../store/TaskItemStore";
 export default function HomePage() {
-  const { tasks, addTask, toggleTask, removeTask } = useTaskStore();
+  const { tasks, addTask, toggleTask, removeTask, setTasks } = useTaskStore();
   const [modalOpened, setModalOpened] = useState(false);
+  const [isfirstload, setfirstload] = useState(true);
+
+  useEffect(() => {
+    if (isfirstload) {
+      setfirstload(false);
+      return;
+    }
+    const savetasks = JSON.stringify(tasks);
+    localStorage.setItem("task", savetasks);
+  }, [tasks]);
+
+  useEffect(() => {
+    const loadTasks = localStorage.getItem("task");
+    if (loadTasks === null) {
+      return;
+    }
+
+    setTasks(JSON.parse(loadTasks));
+  }, []);
 
   return (
     <Container size="lg" py="lg">
@@ -41,6 +61,13 @@ export default function HomePage() {
               <Group justify="space-between" align="flex-start">
                 <Stack>
                   {/* เพิ่ม assignees ตรงนี้*/}
+                  <Group>
+                    {task.assignees?.map((name: string) => (
+                      <Badge variant="light" color="blue" size="sm" key={name}>
+                        {name}
+                      </Badge>
+                    ))}
+                  </Group>
                   <Text
                     fw={600}
                     td={task.isDone ? "line-through" : "none"}
